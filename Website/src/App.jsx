@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import './App.css';
 
 // --- Icons SVGs ---
@@ -850,10 +850,55 @@ function ProfilePage({ onGoToHome, onGoToMain }) {
     role: 'IT Рекрутер',
     company: 'HireOn Agency',
     location: 'Алматы, Казахстан',
-    bio: ''
+    bio: '',
+    avatarDataUrl: ''
   });
 
   const [tempData, setTempData] = useState({ ...profileData });
+  const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    const savedAvatar = localStorage.getItem('profileAvatar');
+    if (savedAvatar) {
+      setProfileData((prev) => ({ ...prev, avatarDataUrl: savedAvatar }));
+    }
+  }, []);
+
+  useEffect(() => {
+    setTempData({ ...profileData });
+  }, [profileData]);
+
+  const openAvatarPicker = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type?.startsWith('image/')) {
+      alert('Пожалуйста, выберите файл изображения (png/jpg/webp и т.д.).');
+      e.target.value = '';
+      return;
+    }
+
+    const maxBytes = 3 * 1024 * 1024; // 3MB
+    if (file.size > maxBytes) {
+      alert('Файл слишком большой. Выберите изображение до 3MB.');
+      e.target.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = typeof reader.result === 'string' ? reader.result : '';
+      if (!dataUrl) return;
+      localStorage.setItem('profileAvatar', dataUrl);
+      setProfileData((prev) => ({ ...prev, avatarDataUrl: dataUrl }));
+      e.target.value = '';
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleSave = () => {
     setProfileData({ ...tempData });
@@ -897,7 +942,20 @@ function ProfilePage({ onGoToHome, onGoToMain }) {
         {/* Left Sidebar */}
         <aside className="gh-sidebar">
           <div className="gh-avatar-wrapper">
-            <Identicon />
+            <button type="button" className="gh-avatar-button" onClick={openAvatarPicker} aria-label="Загрузить фото профиля">
+              {profileData.avatarDataUrl ? (
+                <img className="gh-avatar-img" src={profileData.avatarDataUrl} alt="Фото профиля" />
+              ) : (
+                <Identicon />
+              )}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="gh-avatar-input"
+              onChange={handleAvatarChange}
+            />
             <div className="gh-status-circle">💼</div>
           </div>
 
